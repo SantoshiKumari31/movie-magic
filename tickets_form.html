@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Select Your Seats</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <header class="top-bar">
+        <h1>🎬 Movie Magic</h1>
+        <nav id="main-nav">
+            <!-- Navigation links will be dynamically loaded by JavaScript -->
+        </nav>
+    </header>
+
+    <main>
+        <section class="ticket-form-section">
+            <div class="ticket-form-header">
+                <h2>Select Your Seats</h2>
+                <div class="ticket-info-display">
+                    <span id="display-movie-title"></span> |
+                    <span id="display-theater-name"></span> |
+                    <span id="display-showtime"></span>
+                </div>
+            </div>
+
+            <!-- Prominent Screen Display -->
+            <div class="theater-screen">SCREEN</div>
+
+            <div class="seat-map-container">
+                <div id="seat-selection-grid">
+                    <!-- Seats and row/column labels will be dynamically generated here -->
+                </div>
+            </div>
+
+            <div class="booking-summary">
+                <p>Selected Seats: <strong id="selected-seats-display">None</strong></p>
+                <p>Total Cost: <strong id="total-cost-display">₹0</strong></p>
+            </div>
+
+            <div class="payment-button-container">
+                <button id="continue-payment-btn" class="btn" disabled>Continue to Payment</button>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        // --- Sample Data (Matches backend structure for simulation) ---
+        const MOVIES_DB = {
+            'ee': {
+                'id': 'ee',
+                'title': 'Eternal Echoes',
+                'genre': 'Sci-Fi, Drama',
+                'poster': 'https://placehold.co/150x220/34495e/ecf0f1?text=Eternal+Echoes'
+            },
+            'tlf': {
+                'id': 'tlf',
+                'title': 'The Last Frontier',
+                'genre': 'Adventure, Action',
+                'poster': 'https://placehold.co/150x220/c0392b/ecf0f1?text=Last+Frontier'
+            },
+            'wid': {
+                'id': 'wid',
+                'title': 'Whispers in the Dark',
+                'genre': 'Thriller, Mystery',
+                'poster': 'https://placehold.co/150x220/8e44ad/ecf0f1?text=Whispers+Dark'
+            },
+            'scl': {
+                'id': 'scl',
+                'title': 'Stars Collide',
+                'genre': 'Romance, Fantasy',
+                'poster': 'https://placehold.co/150x220/27ae60/ecf0f1?text=Stars+Collide'
+            },
+            'gsc': {
+                'id': 'gsc',
+                'title': 'Guardian of the Sacred Scroll',
+                'genre': 'Action, Historical',
+                'poster': 'https://placehold.co/150x220/f39c12/ecf0f1?text=Guardian+Scroll'
+            }
+        };
+
+        const DEFAULT_SEAT_PRICE = 150; // Rupee
+        const ROWS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
+        const COLS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10']; // Make sure these are strings for consistency
+
+        let currentUserLoggedIn = localStorage.getItem('isLoggedIn') === 'true'; // Simulate login state
+
+        const mainNav = document.getElementById('main-nav');
+        const seatGrid = document.getElementById('seat-selection-grid');
+        const selectedSeatsDisplay = document.getElementById('selected-seats-display');
+        const totalCostDisplay = document.getElementById('total-cost-display');
+        const continuePaymentBtn = document.getElementById('continue-payment-btn');
+        const displayMovieTitle = document.getElementById('display-movie-title');
+        const displayTheaterName = document.getElementById('display-theater-name');
+        const displayShowtime = document.getElementById('display-showtime');
+
+        let selectedSeats = [];
+        let currentMovieId, currentMovieTitle, currentLocation, currentShowtime, currentTheater;
+        let currentSeatMap = {}; // Stores the latest seat status from the backend
+        let tempLockedSeats = []; // Seats temporarily locked by THIS user on the backend
+
+        // --- Navigation Bar Logic (Copied for consistency) ---
+        function updateNavBar() {
+            mainNav.innerHTML = '';
+            if (currentUserLoggedIn) {
+                const myAccountDiv = document.createElement('div');
+                myAccountDiv.classList.add('dropdown');
+                myAccountDiv.innerHTML = `
+                    <a href="#" class="dropbtn">My Account ▼</a>
+                    <div class="dropdown-content">
+                        <a href="#">Profile</a>
+                        <a href="#">Account Settings</a>
+                        <a href="tickets.html">My Tickets</a>
+                        <a href="#" id="logout-link">Logout</a>
+                    </div>
+                `;
+                mainNav.appendChild(myAccountDiv);
+
+                document.getElementById('logout-link').addEventListener('click', (e) => {
+                    e.preventDefault();
+                    localStorage.setItem('isLoggedIn', 'false');
+                    currentUserLoggedIn = false;
+                    updateNavBar();
+                    alert('You have been logged out.');
+                    window.location.href = 'home.html';
+                });
+            } else {
+                mainNav.innerHTML = `
+                    <a href="home.html">Home</a>
+                    <a href="login.html">Login</a>
+                    <a href="register.html">Register</a>
+                `;
+            }
+        }
+
+        // --- Fetch URL Parameters ---
+        function getUrlParams() {
+            const params = new URLSearchParams(window.location.search);
+            return {
+                movieId: params.get('movieId'),
+                location: params.get('location'),
+                showtime: params.get('showtime'),
+                theater: params.get('theater')
+            };
+        }
+
+        // --- Render Seats with Labels ---
+        function renderSeatMap() {
+            seatGrid.innerHTML = ''; // Clear existing seats
+            // Set grid template columns: one for row labels + columns for seats
+            seatGrid.style.gridTemplateColumns = `40px repeat(${COLS.length}, 1fr)`; // 40px for row labels
+
+            // Add top row (empty corner + column numbers)
+            const emptyCell = document.createElement('div');
+            emptyCell.classList.add('grid-label', 'empty-cell');
+            seatGrid.appendChild(emptyCell);
+
+            for (const col of COLS) {
+                const colLabel = document.createElement('div');
+                colLabel.classList.add('grid-label', 'col-label');
+                colLabel.textContent = col;
+                seatGrid.appendChild(colLabel);
+            }
+
+            // Add seats with row labels
+            for (const row of ROWS) {
+                const rowLabel = document.createElement('div');
+                rowLabel.classList.add('grid-label', 'row-label');
+                rowLabel.textContent = row;
+                seatGrid.appendChild(rowLabel); // Add row label
+
+                for (const col of COLS) {
+                    const seatId = `${row}${col}`;
+                    const seatStatus = currentSeatMap[seatId] || 'available'; // Default to available if not in map
+
+                    const seatDiv = document.createElement('div');
+                    seatDiv.classList.add('seat');
+                    seatDiv.id = `seat-${seatId}`; // Unique ID for each seat element
+                    seatDiv.textContent = seatId;
+
+                    // Add tooltip for price
+                    const tooltip = document.createElement('span');
+                    tooltip.classList.add('seat-tooltip');
+                    tooltip.textContent = `₹${DEFAULT_SEAT_PRICE}`;
+                    seatDiv.appendChild(tooltip);
+
+                    if (seatStatus === 'booked') {
+                        seatDiv.classList.add('booked');
+                        seatDiv.title = `Seat ${seatId} is booked`;
+                    } else if (seatStatus === 'temp_locked') {
+                        // Check if THIS user temporarily locked it, or another user
+                        if (tempLockedSeats.includes(seatId)) {
+                            seatDiv.classList.add('selected'); // If locked by this user, mark as selected
+                        } else {
+                            seatDiv.classList.add('temp-booked'); // Indicate temporarily locked by another user
+                        }
+                        seatDiv.title = `Seat ${seatId} is temporarily held`;
+                    } else { // available
+                        seatDiv.classList.add('available');
+                        seatDiv.title = `Seat ${seatId} - ₹${DEFAULT_SEAT_PRICE}`;
+                        seatDiv.addEventListener('click', () => toggleSeatSelection(seatId));
+                    }
+
+                    // Re-apply 'selected' class if seat was previously selected by this user (and not just locked by server)
+                    if (selectedSeats.includes(seatId) && seatStatus !== 'booked' && !seatDiv.classList.contains('temp-booked')) {
+                         seatDiv.classList.add('selected');
+                    }
+
+
+                    seatGrid.appendChild(seatDiv);
+                }
+            }
+            updateBookingSummary();
+        }
+
+        // --- Seat Selection Logic (Client-side and backend API calls) ---
+        async function toggleSeatSelection(seatId) {
+            const seatElement = document.getElementById(`seat-${seatId}`);
+            const isSelected = selectedSeats.includes(seatId); // Check our local array for selection
+
+            if (isSelected) {
+                // Deselect seat
+                selectedSeats = selectedSeats.filter(seat => seat !== seatId);
+                seatElement.classList.remove('selected');
+                // Send request to backend to release lock for this seat
+                await releaseSeats([seatId]);
+            } else {
+                // Select seat - check availability first
+                if (currentSeatMap[seatId] === 'available') {
+                    // Send request to backend to lock this seat
+                    const lockSuccess = await lockSeats([seatId]);
+                    if (lockSuccess) {
+                        selectedSeats.push(seatId);
+                        seatElement.classList.add('selected');
+                        // Update local seat map immediately after successful lock
+                        currentSeatMap[seatId] = 'temp_locked'; // Mark as locked by THIS user
+                    } else {
+                        alert('This seat is no longer available or has been locked by another user. Please re-select.');
+                        // Re-fetch seat status to get the latest state if lock failed
+                        fetchSeatStatus();
+                    }
+                } else {
+                    alert('This seat is already booked or temporarily held. Please choose another.');
+                    // Re-fetch seat status to get the latest state if UI is outdated
+                    fetchSeatStatus();
+                }
+            }
+            updateBookingSummary();
+        }
+
+        async function fetchSeatStatus() {
+            const url = `/api/seat_status?movieId=${currentMovieId}&location=${encodeURIComponent(currentLocation)}&showtime=${encodeURIComponent(currentShowtime)}&theater=${encodeURIComponent(currentTheater)}`;
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+                if (response.ok) {
+                    currentSeatMap = data;
+                    renderSeatMap(); // Re-render the seat map with the latest data
+                } else {
+                    alert('Error fetching seat status: ' + data.message);
+                    console.error('Error fetching seat status:', data.message);
+                }
+            } catch (error) {
+                console.error('Network error fetching seat status:', error);
+                alert('Could not connect to server to get seat status.');
+            }
+        }
+
+        async function lockSeats(seats) {
+            if (seats.length === 0) return true; // Nothing to lock
+
+            try {
+                const response = await fetch('/api/lock_seats', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        movieId: currentMovieId,
+                        location: currentLocation,
+                        showtime: currentShowtime,
+                        theater: currentTheater,
+                        seats: seats
+                    })
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    tempLockedSeats = [...new Set([...tempLockedSeats, ...data.locked_seats])]; // Add successfully locked seats
+                    return true;
+                } else {
+                    console.error('Failed to lock seats:', data.message);
+                    return false;
+                }
+            } catch (error) {
+                console.error('Network error locking seats:', error);
+                return false;
+            }
+        }
+
+        async function releaseSeats(seats) {
+            if (seats.length === 0) return;
+
+            try {
+                const response = await fetch('/api/release_seats', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        movieId: currentMovieId,
+                        location: currentLocation,
+                        showtime: currentShowtime,
+                        theater: currentTheater,
+                        seats: seats
+                    })
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    tempLockedSeats = tempLockedSeats.filter(seat => !seats.includes(seat)); // Remove released seats
+                } else {
+                    console.error('Failed to release seats:', data.message);
+                }
+            } catch (error) {
+                console.error('Network error releasing seats:', error);
+            }
+        }
+
+        function updateBookingSummary() {
+            selectedSeats.sort((a, b) => {
+                const rowA = a.charCodeAt(0);
+                const rowB = b.charCodeAt(0);
+                if (rowA !== rowB) return rowA - rowB;
+                return parseInt(a.substring(1)) - parseInt(b.substring(1));
+            });
+
+            selectedSeatsDisplay.textContent = selectedSeats.length > 0 ? selectedSeats.join(', ') : 'None';
+            const totalCost = selectedSeats.length * DEFAULT_SEAT_PRICE;
+            totalCostDisplay.textContent = `₹${totalCost}`;
+
+            if (selectedSeats.length > 0) {
+                continuePaymentBtn.disabled = false;
+            } else {
+                continuePaymentBtn.disabled = true;
+            }
+        }
+
+        // --- Event Listener for Payment Button ---
+        continuePaymentBtn.addEventListener('click', () => {
+            if (selectedSeats.length === 0) {
+                alert('Please select at least one seat.');
+                return;
+            }
+
+            const totalCost = selectedSeats.length * DEFAULT_SEAT_PRICE;
+
+            // Redirect to payment.html with all necessary details
+            const redirectUrl = `payment.html?movieId=${currentMovieId}&location=${encodeURIComponent(currentLocation)}&showtime=${encodeURIComponent(currentShowtime)}&theater=${encodeURIComponent(currentTheater)}&selectedSeats=${selectedSeats.join(',')}&totalCost=${totalCost}`;
+            window.location.href = redirectUrl;
+        });
+
+        // --- Handle Unload Event to Release Locks ---
+        window.addEventListener('beforeunload', async () => {
+            if (tempLockedSeats.length > 0) {
+                // Attempt to release all temporarily locked seats when user leaves the page
+                // This is a best-effort approach, as the request might not complete if the page closes too fast.
+                // A robust backend would have a timeout for temp locks.
+                await releaseSeats(tempLockedSeats);
+            }
+        });
+
+
+        // --- Initial Load ---
+        document.addEventListener('DOMContentLoaded', async () => {
+            updateNavBar();
+            const params = getUrlParams();
+            currentMovieId = params.movieId;
+            currentLocation = params.location;
+            currentShowtime = params.showtime;
+            currentTheater = params.theater;
+
+            if (!currentMovieId || !currentLocation || !currentShowtime || !currentTheater) {
+                alert('Missing booking parameters. Redirecting to home page.');
+                window.location.href = 'home.html';
+                return;
+            }
+
+            // Display movie, theater, showtime info
+            const movie = MOVIES_DB[currentMovieId];
+            if (movie) {
+                displayMovieTitle.textContent = movie.title;
+            } else {
+                displayMovieTitle.textContent = 'Unknown Movie';
+            }
+            displayTheaterName.textContent = currentTheater;
+            displayShowtime.textContent = currentShowtime;
+
+            // Fetch initial seat status from backend
+            await fetchSeatStatus();
+
+            // Set up a polling mechanism to refresh seat status
+            // In a real-time app, you might use WebSockets instead of polling
+            setInterval(fetchSeatStatus, 5000); // Poll every 5 seconds
+        });
+    </script>
+</body>
+</html>

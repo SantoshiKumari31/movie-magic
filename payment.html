@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Complete Your Payment</title>
+    <link rel="stylesheet" href="static/style.css">
+</head>
+<body>
+    <header class="top-bar">
+        <h1>🎬 Movie Magic</h1>
+        <nav id="main-nav">
+            <!-- Navigation links will be dynamically loaded by JavaScript -->
+        </nav>
+    </header>
+
+    <main>
+        <section class="payment-section">
+            <div class="payment-header">
+                <h2>Complete Your Payment</h2>
+                <p>You are booking <strong><span id="payment-num-seats"></span> seats</strong> for <strong><span id="payment-movie-title"></span></strong> at <strong><span id="payment-theater-name"></span></strong> (<span id="payment-showtime"></span>).</p>
+                <h3>Total Amount: <strong id="payment-total-cost">₹0</strong></h3>
+            </div>
+
+            <div class="payment-methods-grid">
+                <div class="payment-method-card credit-card" data-method="credit_card">
+                    <span class="icon"></span>
+                    <h4>Credit Card</h4>
+                </div>
+                <div class="payment-method-card upi" data-method="upi">
+                    <span class="icon"></span>
+                    <h4>UPI</h4>
+                </div>
+                <div class="payment-method-card qr-code" data-method="qr_code">
+                    <span class="icon"></span>
+                    <h4>QR Code (PhonePe, GooglePay, BHIM)</h4>
+                </div>
+            </div>
+
+            <div id="payment-details-section" class="payment-details-section hidden">
+                <!-- Payment method specific inputs will appear here -->
+            </div>
+
+            <div id="payment-status-message" class="payment-status-message hidden">
+                <!-- Payment success/failure messages will appear here -->
+            </div>
+
+            <div id="ticket-details-download" class="ticket-details-download hidden">
+                <p>Your Ticket Code: <strong id="final-ticket-code"></strong></p>
+                <button id="download-ticket-btn" class="btn">Download Ticket Plan</button>
+                <p class="small-text">Note: For a real app, this would generate a PDF or image of your ticket.</p>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        // --- Sample Data (Matches backend structure for simulation) ---
+        const MOVIES_DB = {
+            'ee': {
+                'id': 'ee',
+                'title': 'Eternal Echoes',
+                'poster': 'https://placehold.co/150x220/34495e/ecf0f1?text=Eternal+Echoes'
+            },
+            'tlf': {
+                'id': 'tlf',
+                'title': 'The Last Frontier',
+                'poster': 'https://placehold.co/150x220/c0392b/ecf0f1?text=Last+Frontier'
+            },
+            'wid': {
+                'id': 'wid',
+                'title': 'Whispers in the Dark',
+                'poster': 'https://placehold.co/150x220/8e44ad/ecf0f1?text=Whispers+Dark'
+            },
+            'scl': {
+                'id': 'scl',
+                'title': 'Stars Collide',
+                'poster': 'https://placehold.co/150x220/27ae60/ecf0f1?text=Stars+Collide'
+            },
+            'gsc': {
+                'id': 'gsc',
+                'title': 'Guardian of the Sacred Scroll',
+                'poster': 'https://placehold.co/150x220/f39c12/ecf0f1?text=Guardian+Scroll'
+            }
+        };
+
+        let currentUserLoggedIn = localStorage.getItem('isLoggedIn') === 'true'; // Simulate login state
+
+        const mainNav = document.getElementById('main-nav');
+        const paymentNumSeats = document.getElementById('payment-num-seats');
+        const paymentMovieTitle = document.getElementById('payment-movie-title');
+        const paymentTheaterName = document.getElementById('payment-theater-name');
+        const paymentShowtime = document.getElementById('payment-showtime');
+        const paymentTotalCost = document.getElementById('payment-total-cost');
+        const paymentDetailsSection = document.getElementById('payment-details-section');
+        const paymentStatusMessage = document.getElementById('payment-status-message');
+        const ticketDetailsDownload = document.getElementById('ticket-details-download');
+        const finalTicketCode = document.getElementById('final-ticket-code');
+        const downloadTicketBtn = document.getElementById('download-ticket-btn');
+
+        let bookingDetails = {}; // Store all details passed via URL params
+
+        // --- Navigation Bar Logic (Copied for consistency) ---
+        function updateNavBar() {
+            mainNav.innerHTML = '';
+            if (currentUserLoggedIn) {
+                const myAccountDiv = document.createElement('div');
+                myAccountDiv.classList.add('dropdown');
+                myAccountDiv.innerHTML = `
+                    <a href="#" class="dropbtn">My Account ▼</a>
+                    <div class="dropdown-content">
+                        <a href="#">Profile</a>
+                        <a href="#">Account Settings</a>
+                        <a href="tickets.html">My Tickets</a>
+                        <a href="#" id="logout-link">Logout</a>
+                    </div>
+                `;
+                mainNav.appendChild(myAccountDiv);
+
+                document.getElementById('logout-link').addEventListener('click', (e) => {
+                    e.preventDefault();
+                    localStorage.setItem('isLoggedIn', 'false');
+                    currentUserLoggedIn = false;
+                    updateNavBar();
+                    alert('You have been logged out.');
+                    window.location.href = 'home.html';
+                });
+            } else {
+                mainNav.innerHTML = `
+                    <a href="home.html">Home</a>
+                    <a href="login.html">Login</a>
+                    <a href="register.html">Register</a>
+                `;
+            }
+        }
+
+        // --- Fetch URL Parameters ---
+        function getUrlParams() {
+            const params = new URLSearchParams(window.location.search);
+            return {
+                movieId: params.get('movieId'),
+                location: params.get('location'),
+                showtime: params.get('showtime'),
+                theater: params.get('theater'),
+                selectedSeats: params.get('selectedSeats') ? params.get('selectedSeats').split(',') : [],
+                totalCost: parseFloat(params.get('totalCost')) || 0
+            };
+        }
+
+        // --- Display Payment Methods and Handle Selection ---
+        function setupPaymentMethods() {
+            document.querySelectorAll('.payment-method-card').forEach(card => {
+                card.addEventListener('click', () => {
+                    document.querySelectorAll('.payment-method-card').forEach(c => c.classList.remove('selected'));
+                    card.classList.add('selected');
+                    const method = card.dataset.method;
+                    renderPaymentDetailsForm(method);
+                });
+            });
+        }
+
+        function renderPaymentDetailsForm(method) {
+            paymentDetailsSection.classList.remove('hidden');
+            paymentStatusMessage.classList.add('hidden'); // Hide status message when changing method
+            ticketDetailsDownload.classList.add('hidden'); // Hide download button
+
+            let formHtml = '';
+            if (method === 'credit_card') {
+                formHtml = `
+                    <h4>Pay with Credit Card</h4>
+                    <div id="card-input-group">
+                        <label for="card-number">Card Number:</label>
+                        <input type="text" id="card-number" placeholder="XXXX XXXX XXXX XXXX" required maxlength="19">
+                        <label for="card-name">Name on Card:</label>
+                        <input type="text" id="card-name" placeholder="Full Name" required>
+                        <label for="expiry-date">Expiry Date (MM/YY):</label>
+                        <input type="text" id="expiry-date" placeholder="MM/YY" required maxlength="5">
+                        <label for="cvv">CVV:</label>
+                        <input type="text" id="cvv" placeholder="XXX" required maxlength="4">
+                    </div>
+                    <button id="pay-card-btn" class="btn">Pay Now</button>
+                `;
+            } else if (method === 'upi') {
+                formHtml = `
+                    <h4>Pay with UPI</h4>
+                    <div id="upi-input-group">
+                        <label for="upi-id">Enter your UPI ID:</label>
+                        <input type="text" id="upi-id" placeholder="yourname@bankupi" required>
+                    </div>
+                    <button id="pay-upi-btn" class="btn">Proceed with UPI</button>
+                `;
+            } else if (method === 'qr_code') {
+                formHtml = `
+                    <h4>Scan QR Code to Pay</h4>
+                    <div class="qr-code-display">
+                        <p>Scan this QR code with PhonePe, GooglePay, or BHIM app to pay <strong id="qr-cost">₹${bookingDetails.totalCost}</strong></p>
+                        <img id="qr-code-img" src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=upi://pay?pa=yourvpa@bank&pn=MovieMagic&am=${bookingDetails.totalCost}&cu=INR" alt="QR Code">
+                        <button id="simulate-qr-payment-btn" class="btn">Simulate QR Payment (for Demo)</button>
+                    </div>
+                `;
+            }
+            paymentDetailsSection.innerHTML = formHtml;
+            attachPaymentButtonListeners(method);
+        }
+
+        function attachPaymentButtonListeners(method) {
+            if (method === 'credit_card') {
+                document.getElementById('pay-card-btn').addEventListener('click', () => simulatePayment('credit_card'));
+            } else if (method === 'upi') {
+                document.getElementById('pay-upi-btn').addEventListener('click', () => simulatePayment('upi'));
+            } else if (method === 'qr_code') {
+                document.getElementById('simulate-qr-payment-btn').addEventListener('click', () => simulatePayment('qr_code'));
+            }
+        }
+
+        async function simulatePayment(method) {
+            paymentStatusMessage.classList.remove('error'); // Clear previous error
+            paymentStatusMessage.classList.add('hidden');
+            paymentStatusMessage.textContent = 'Processing payment...';
+            paymentStatusMessage.classList.remove('hidden');
+
+            try {
+                const response = await fetch('/api/simulate_payment', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        method: method,
+                        totalCost: bookingDetails.totalCost,
+                        // In a real app, send actual card/UPI details
+                    })
+                });
+                const data = await response.json();
+
+                if (response.ok && data.status === 'success') {
+                    paymentStatusMessage.textContent = 'Payment successful! Confirming your booking...';
+                    paymentStatusMessage.classList.remove('error'); // Ensure no error styling
+                    // Proceed to confirm booking on the backend
+                    confirmBooking();
+                } else {
+                    paymentStatusMessage.textContent = `Payment failed: ${data.message}`;
+                    paymentStatusMessage.classList.add('error');
+                }
+            } catch (error) {
+                console.error('Network error during payment:', error);
+                paymentStatusMessage.textContent = 'Payment failed due to network error. Please try again.';
+                paymentStatusMessage.classList.add('error');
+            }
+        }
+
+        async function confirmBooking() {
+            try {
+                const response = await fetch('/api/confirm_booking', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        movieId: bookingDetails.movieId,
+                        location: bookingDetails.location,
+                        showtime: bookingDetails.showtime,
+                        theater: bookingDetails.theater,
+                        selectedSeats: bookingDetails.selectedSeats,
+                        totalCost: bookingDetails.totalCost
+                    })
+                });
+                const data = await response.json();
+
+                if (response.ok) {
+                    paymentStatusMessage.textContent = 'Payment successful! Your tickets are confirmed.';
+                    paymentStatusMessage.classList.remove('error');
+                    finalTicketCode.textContent = data.ticket_code;
+                    ticketDetailsDownload.classList.remove('hidden');
+                    // Optionally hide payment methods after success
+                    document.getElementById('payment-details-section').classList.add('hidden');
+                    document.querySelectorAll('.payment-method-card').forEach(card => card.style.display = 'none');
+                } else {
+                    paymentStatusMessage.textContent = `Booking confirmation failed: ${data.message}`;
+                    paymentStatusMessage.classList.add('error');
+                    // In case of conflict (seat taken), user might need to go back and re-select
+                    if (response.status === 409) {
+                        alert(data.message + " Please go back to seat selection.");
+                    }
+                }
+            } catch (error) {
+                console.error('Network error during booking confirmation:', error);
+                paymentStatusMessage.textContent = 'Booking failed due to network error. Please contact support.';
+                paymentStatusMessage.classList.add('error');
+            }
+        }
+
+        // --- Download Ticket Functionality (Simulated PDF/Image) ---
+        downloadTicketBtn.addEventListener('click', () => {
+            const movie = MOVIES_DB[bookingDetails.movieId];
+            const userName = localStorage.getItem('currentUsername') || 'Guest User'; // Get logged in username if available
+
+            const ticketContent = `
+                Movie: ${movie ? movie.title : 'N/A'}
+                Theater: ${bookingDetails.theater}
+                Showtime: ${bookingDetails.showtime}
+                Seats: ${bookingDetails.selectedSeats.join(', ')}
+                Total Cost: ₹${bookingDetails.totalCost}
+                Ticket Code: ${finalTicketCode.textContent}
+                Booked By: ${userName}
+                ---
+                This is a simulated ticket download.
+                In a real application, a server-generated PDF or image would be provided.
+            `;
+
+            // Simple text file download simulation
+            const blob = new Blob([ticketContent], { type: 'text/plain' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `MovieTicket_${finalTicketCode.textContent}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+
+            alert('Download simulated! Check your downloads for "MovieTicket_[code].txt"');
+        });
+
+
+        // --- Initial Load ---
+        document.addEventListener('DOMContentLoaded', () => {
+            updateNavBar();
+            bookingDetails = getUrlParams();
+
+            if (!bookingDetails.movieId || bookingDetails.selectedSeats.length === 0) {
+                alert('No booking details found. Please select a movie and seats first.');
+                window.location.href = 'home.html';
+                return;
+            }
+
+            // Display booking summary
+            const movie = MOVIES_DB[bookingDetails.movieId];
+            if (movie) {
+                paymentMovieTitle.textContent = movie.title;
+            } else {
+                paymentMovieTitle.textContent = 'Unknown Movie';
+            }
+            paymentNumSeats.textContent = bookingDetails.selectedSeats.length;
+            paymentTheaterName.textContent = bookingDetails.theater;
+            paymentShowtime.textContent = bookingDetails.showtime;
+            paymentTotalCost.textContent = `₹${bookingDetails.totalCost}`;
+
+            setupPaymentMethods();
+        });
+    </script>
+</body>
+</html>

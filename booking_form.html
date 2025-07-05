@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Movie Details & Booking</title>
+    <link rel="stylesheet" href="static/style.css">
+</head>
+<body>
+    <header class="top-bar">
+        <h1>🎬 Movie Magic</h1>
+        <nav id="main-nav">
+            <!-- Navigation links will be dynamically loaded by JavaScript -->
+        </nav>
+    </header>
+
+    <main>
+        <section class="movie-detail-section">
+            <div id="movie-detail-content" class="movie-detail-container">
+                <!-- Movie details will be loaded here by JavaScript -->
+                <p>Loading movie details...</p>
+            </div>
+
+            <div class="trailer-section">
+                <h3>Trailer</h3>
+                <div id="movie-trailer-embed" class="video-responsive">
+                    <!-- YouTube iframe will be embedded here -->
+                    <p>Loading trailer...</p>
+                </div>
+            </div>
+
+            <div class="booking-options">
+                <h3>Select Showtime</h3>
+                <div class="form-group">
+                    <label for="showtime-select">Choose a Showtime:</label>
+                    <select id="showtime-select">
+                        <option value=""></option>
+                        <option value="choose showtime">choose showtime</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="theater-display">Theater:</label>
+                    <span id="theater-display">N/A</span>
+                </div>
+            </div>
+
+            <div class="book-tickets-footer">
+                <button id="book-tickets-btn" class="btn hidden" disabled>Book Tickets</button>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        // --- Sample Data (Matches backend structure for simulation) ---
+        // In a real application, this data would be fetched from your Python backend
+        // via an API call when the page loads, using the movieId.
+        // For this demo, it's hardcoded to allow standalone testing.
+        const MOVIES_DB = {
+            'ee': {
+                'id': 'ee',
+                'title': 'Eternal Echoes',
+                'genre': 'Sci-Fi, Drama',
+                'rating': '8.5/10',
+                'poster': 'https://voxcapetown.com/wp-content/uploads/2023/06/eternal-echoes.jpg',
+                'trailerId': 'CLDMJ7Q-mDI', // Dummy YouTube video ID
+                'description': 'A captivating sci-fi drama that explores the intricate threads of time, memory, and parallel universes. A group of scientists discovers a phenomenon that allows them to glimpse into past lives, leading to profound revelations and dangerous paradoxes.',
+                'locations': ['Mumbai', 'Delhi'],
+                'showtimes': {
+                    'Mumbai': {'10:00 AM': 'Galaxy', '02:30 PM': 'PVR Icon', '07:00 PM': 'Cinepolis'},
+                    'Delhi': {'10:00 AM': 'Wave', '02:30 PM': 'PVR Plaza', '07:00 PM': 'Carnival'}
+                }
+            },
+            'baahu': {
+                'id': 'baahu',
+                'title': 'Baahubali',
+                'genre': 'thriller, Action',
+                'rating': '9.9/10',
+                'poster': 'https://mir-s3-cdn-cf.behance.net/project_modules/1400/51054826796257.5635a9602a829.jpg',
+                'trailerId': '3NQRhE772b0',
+                'description': 'Baahubali is a visually stunning Indian epic that follows the tale of two royal brothers battling for the throne of Mahishmati.It blends mythology, heroism, betrayal, and destiny in a grand cinematic saga.Directed by S.S. Rajamouli, the film redefined Indian cinema with its scale, storytelling, and visual effects.',
+                'locations': ['Bengaluru', 'Mumbai'],
+                'showtimes': {
+                    'Bengaluru': {'11:30 AM': 'Orion', '04:00 PM': 'Innovative'},
+                    'Mumbai': {'08:45 PM': 'INOX'},
+                    'Chennai':{'08:45 PM':'Innovative'},
+                    'Delhi':{'02:00':'INOX'}
+                }
+            },
+            'saaho': {
+                'id': 'saaho',
+               'title': 'Saaho',
+                'genre': 'Thriller, saspence',
+                'rating': '9.1/10',
+                'poster': 'https://m.media-amazon.com/images/M/MV5BYmNlM2NkNzEtODAwOS00MTFjLTljODAtNjJjODdhZjI5MGYzXkEyXkFqcGc%40._V1_FMjpg_UX1000_.jpg',
+                'trailerId': 'HNnt00swZ5Q',
+                'description': 'Saaho (2019) is a high-octane Indian action thriller directed by Sujeeth, starring Prabhas (in his Hindi debut) and Shraddha Kapoor (in her Telugu debut) as undercover agents racing to recover a high-stakes black box amid a dangerous crime syndicate',
+                'locations': ['Chennai', 'Delhi'],
+                 'showtimes': {
+                     'Chennai': {'01:00 PM': 'AGS', '06:00 PM': 'Jazz'},
+                    'Delhi': {'10:00 PM': 'Liberty'}
+                    }
+            },
+            'salaar': {
+                'id': 'salaar',
+                'title': 'Salaar',
+                'genre': 'Friendship, Action',
+                'rating': '9.0/10',
+                'poster': 'https://m.media-amazon.com/images/M/MV5BNTU0ZjYxOWItOWViMC00YWVlLWJlMGUtZjc1YWU0NTlhY2ZhXkEyXkFqcGc%40._V1_.jpg',
+                'trailerId': '7JBFA4qSX_o',
+                'description': 'Salaar: Part 1 – Ceasefire is a Telugu-language epic neo‑noir action thriller directed by Prashanth Neel, in which Prabhas stars as Deva, a stoic exiled prince drawn back into the fire of a planned coup in the dystopian city-state of Khansaar',
+                'locations': ['Mumbai', 'Chennai'],
+                'showtimes': {
+            'Mumbai': {'09:45 AM': 'Metro', '03:15 PM': 'Regal'},
+            'Chennai': {'09:00 PM': 'Sathyam'}
+                   }
+            },
+            'Puspa': {
+                'id': 'Puspa',
+                'title': 'Puspa-2',
+                'genre': 'Action, Don',
+                'rating': '8.5/10',
+                'poster': 'https://img.ap7am.com/froala-uploads/20241017fr6710ac0068685.jpg',
+                'trailerId': 'g3JUbgOHgdw',
+                'description': 'Pushpa 2: The Rule (released Dec 5, 2024) continues the saga of Pushpa Raj, a once-humble sandalwood smuggler turned syndicate kingpin, as he battles political corruption and powerful foes to consolidate his empire',
+                'locations': ['Delhi', 'Bengaluru'],
+                'showtimes': {
+            'Delhi': {'10:30 AM': 'DT Cinema', '01:30 PM': 'Pacific'},
+            'Bengaluru': {'05:00 PM': 'Gopalan', '08:30 PM': 'Rex'}
+                 }
+            }
+        };
+        let currentUserLoggedIn = localStorage.getItem('isLoggedIn') === 'true'; // Simulate login state
+
+        const mainNav = document.getElementById('main-nav');
+        const movieDetailContent = document.getElementById('movie-detail-content');
+        const movieTrailerEmbed = document.getElementById('movie-trailer-embed');
+        const showtimeSelect = document.getElementById('showtime-select');
+        const theaterDisplay = document.getElementById('theater-display');
+        const bookTicketsBtn = document.getElementById('book-tickets-btn');
+
+        let currentMovie = null;
+        let selectedLocation = '';
+        let selectedShowtime = '';
+        let selectedTheater = '';
+
+        // --- Navigation Bar Logic (Copied from home.html for consistency) ---
+        function updateNavBar() {
+            mainNav.innerHTML = '';
+            if (currentUserLoggedIn) {
+                const myAccountDiv = document.createElement('div');
+                myAccountDiv.classList.add('dropdown');
+                myAccountDiv.innerHTML = `
+                    <a href="#" class="dropbtn">My Account ▼</a>
+                    <div class="dropdown-content">
+                        <a href="#">Profile</a>
+                        <a href="#">Account Settings</a>
+                        <a href="tickets.html">My Tickets</a>
+                        <a href="#" id="logout-link">Logout</a>
+                    </div>
+                `;
+                mainNav.appendChild(myAccountDiv);
+
+                document.getElementById('logout-link').addEventListener('click', (e) => {
+                    e.preventDefault();
+                    // In a real app, send a request to backend to invalidate session
+                    localStorage.setItem('isLoggedIn', 'false');
+                    currentUserLoggedIn = false;
+                    updateNavBar();
+                    alert('You have been logged out.');
+                    // Optionally redirect to home page
+                    window.location.href = 'home.html';
+                });
+            } else {
+                mainNav.innerHTML = `
+                    <a href="{{url_for('home')}}">Home</a>
+                    <a href="{{url_for('login')}}">Login</a>
+                    <a href="{{url_for('register')}}">Register</a>
+                `;
+            }
+        }
+
+        // --- Fetch and Display Movie Details ---
+        function getMovieIdAndLocationFromUrl() {
+            const params = new URLSearchParams(window.location.search);
+            return {
+                movieId: params.get('movieId'),
+                location: params.get('location')
+            };
+        }
+
+        function displayMovieDetails(movie, location) {
+            movieDetailContent.innerHTML = `
+                <img src="${movie.poster}" alt="${movie.title} Poster" class="movie-detail-poster">
+                <div class="movie-detail-info">
+                    <h2>${movie.title}</h2>
+                    <p class="detail-item"><strong>Genre:</strong> ${movie.genre}</p>
+                    <p class="detail-item"><strong>Rating:</strong> ⭐ ${movie.rating}</p>
+                    <p class="detail-description">${movie.description}</p>
+                </div>
+            `;
+
+            // Embed YouTube Trailer
+            if (movie.trailerId) {
+                movieTrailerEmbed.innerHTML = `
+                    <iframe width="400" height="250"   src="https://www.youtube.com/embed/${movie.trailerId}?autoplay=0&controls=1&rel=0"
+                     title="YouTube trailer"
+                    frameborder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                    allowfullscreen>
+                    </iframe>
+                `;
+            } else {
+                movieTrailerEmbed.innerHTML = "<p>No trailer available.</p>";
+            }
+
+            // Populate showtimes for the selected location
+            const showtimesForLocation = movie.showtimes[location] || {};
+            showtimeSelect.innerHTML = '<option value="">Select a showtime...</option>';
+            for (const time in showtimesForLocation) {
+                const option = document.createElement('option');
+                option.value = time;
+                option.textContent = `${time} (${showtimesForLocation[time]})`;
+                showtimeSelect.appendChild(option);
+            }
+        }
+
+        // --- Event Listeners ---
+        showtimeSelect.addEventListener('change', (e) => {
+            selectedShowtime = e.target.value;
+            if (selectedShowtime && currentMovie && currentMovie.showtimes[selectedLocation]) {
+                selectedTheater = currentMovie.showtimes[selectedLocation][selectedShowtime];
+                theaterDisplay.textContent = selectedTheater;
+                bookTicketsBtn.classList.remove('hidden');
+                bookTicketsBtn.disabled = false;
+            } else {
+                theaterDisplay.textContent = 'N/A';
+                bookTicketsBtn.classList.add('hidden');
+                bookTicketsBtn.disabled = true;
+            }
+        });
+
+        bookTicketsBtn.addEventListener('click', () => {
+            if (!currentUserLoggedIn) {
+                alert('Please login to book tickets.');
+                window.location.href = '/login';
+                return;
+            }
+
+            if (currentMovie && selectedLocation && selectedShowtime && selectedTheater) {
+                // Pass all necessary info to the tickets_form.html page
+                const redirectUrl = `tickets_form.html?movieId=${currentMovie.id}&location=${encodeURIComponent(selectedLocation)}&showtime=${encodeURIComponent(selectedShowtime)}&theater=${encodeURIComponent(selectedTheater)}`;
+                window.location.href = redirectUrl;
+            } else {
+                alert('Please select a showtime before proceeding.');
+            }
+        });
+
+
+        // --- Initial Load ---
+        document.addEventListener('DOMContentLoaded', () => {
+            updateNavBar();
+            const { movieId, location } = getMovieIdAndLocationFromUrl();
+
+            if (movieId && location) {
+                currentMovie = MOVIES_DB[movieId]; // Get movie from local MOVIES_DB
+                selectedLocation = location;
+                if (currentMovie) {
+                    displayMovieDetails(currentMovie, selectedLocation);
+                } else {
+                    movieDetailContent.innerHTML = "<p>Movie not found.</p>";
+                    movieTrailerEmbed.innerHTML = "";
+                    bookTicketsBtn.classList.add('hidden');
+                }
+            } else {
+                movieDetailContent.innerHTML = "<p>No movie selected why because you does't choose location. so,please choose location & go back to the <a href='/'>home page</a>.</p>";
+                movieTrailerEmbed.innerHTML = "";
+                bookTicketsBtn.classList.add('hidden');
+            }
+        });
+    </script>
+</body>
+</html>

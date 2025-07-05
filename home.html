@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Home - Movie Magic</title>
+  <link rel="stylesheet" href="static/style.css"/>
+  <style>
+    /* Styles for the new "Upcoming Movie Trailers" section, if you want to keep them inline */
+    .new-trailers-section {
+      background-color: #4a148c; /* Dark purple background */
+      color: white;
+      padding: 40px 20px;
+      text-align: center;
+      margin-top: 30px;
+      border-radius: 10px;
+      position: relative; /* For the app logo */
+      overflow: hidden; /* To contain background effects */
+    }
+
+    .new-trailers-section h3 {
+      font-size: 2.5em;
+      margin-bottom: 10px;
+      color: white;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      font-weight: bold;
+    }
+
+    .new-trailers-section p {
+      font-size: 1.2em;
+      margin-bottom: 30px;
+      color: #e0e0e0;
+    }
+
+    .new-trailers-grid {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 25px;
+    }
+
+    .new-trailer-item {
+      position: relative;
+      width: 150px; /* Size of the circular container */
+      height: 150px;
+      border-radius: 50%; /* Makes it circular */
+      overflow: hidden; /* Hides parts of image outside the circle */
+      border: 3px solid #ffeb3b; /* Yellow border */
+      box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+      cursor: pointer;
+      transition: transform 0.3s ease;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background-color: black; /* Fallback */
+    }
+
+    .new-trailer-item:hover {
+      transform: translateY(-10px) scale(1.05);
+    }
+
+    .new-trailer-item img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover; /* Ensures image covers the circle */
+      filter: brightness(0.7); /* Slightly dim the image */
+      transition: filter 0.3s ease;
+    }
+
+    .new-trailer-item:hover img {
+      filter: brightness(1);
+    }
+
+    .new-trailer-play-overlay {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 3em;
+      color: white;
+      opacity: 0.8;
+      pointer-events: none; /* Allows click to pass through to link */
+      text-shadow: 0 0 10px rgba(0, 0, 0, 0.7);
+    }
+
+    .app-logo-overlay {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      width: 60px; /* Adjust size as needed */
+      height: 60px;
+      background: url('https://png.pngtree.com/png-vector/20220815/ourmid/pngtree-app-logo-icon-png-image_6104443.png') no-repeat center center; /* Replace with your actual app logo if you have one */
+      background-size: contain;
+    }
+
+    /* Gradient overlay for the background, if desired like in the image */
+    .new-trailers-section::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(45deg, rgba(255,235,59,0.2) 0%, rgba(74,20,140,0.8) 100%);
+      opacity: 0.7;
+      z-index: 0;
+    }
+    .new-trailers-section > * {
+        position: relative; /* Ensure content is above the pseudo-element */
+        z-index: 1;
+    }
+
+    /* INCREASED SIZE FOR CAROUSEL ITEMS */
+    .movie-carousel .carousel-item {
+      width: 400px; /* Increased width */
+      height: 250px; /* Increased height */
+      flex-shrink: 0; /* Prevent items from shrinking */
+      margin: 0 15px; /* Add some space between items */
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .movie-carousel .carousel-item img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 8px;
+    }
+
+    .movie-carousel .play-overlay {
+      font-size: 4em; /* Larger play icon */
+    }
+
+    /* Adjust movie-carousel-container to accommodate larger items */
+    .movie-carousel-container {
+        padding: 20px 0; /* Add padding for better spacing */
+    }
+
+    /* Further adjustments for carousel to ensure smooth scrolling with larger items */
+    .movie-carousel {
+        display: flex;
+        overflow-x: auto; /* Enable horizontal scrolling */
+        scroll-behavior: smooth;
+        -webkit-overflow-scrolling: touch; /* For smoother scrolling on iOS */
+        /* Hide scrollbar for a cleaner look */
+        scrollbar-width: none; /* Firefox */
+        -ms-overflow-style: none;  /* IE and Edge */
+    }
+    .movie-carousel::-webkit-scrollbar {
+        display: none; /* Chrome, Safari, Opera */
+    }
+
+    /* Footer styles */
+    .site-footer {
+      background-color: #333;
+      color: #fff;
+      padding: 40px 20px;
+      margin-top: 50px;
+      font-size: 0.9em;
+      line-height: 1.6;
+      text-align: center;
+    }
+
+    .footer-content {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-around;
+      max-width: 1200px;
+      margin: 0 auto;
+      text-align: left;
+    }
+
+    .footer-section {
+      flex: 1;
+      min-width: 200px;
+      margin: 15px;
+    }
+
+    .footer-section h4 {
+      color: #ffeb3b; /* Yellow accent for headings */
+      margin-bottom: 15px;
+      font-size: 1.2em;
+      text-transform: uppercase;
+    }
+
+    .footer-section p, .footer-section ul {
+      margin-bottom: 10px;
+      color: #bbb;
+    }
+
+    .footer-section ul {
+      list-style: none;
+      padding: 0;
+    }
+
+    .footer-section ul li a {
+      color: #bbb;
+      text-decoration: none;
+      transition: color 0.3s ease;
+    }
+
+    .footer-section ul li a:hover {
+      color: #ffeb3b;
+    }
+
+    .footer-bottom {
+      text-align: center;
+      margin-top: 30px;
+      padding-top: 20px;
+      border-top: 1px solid #555;
+      color: #aaa;
+    }
+
+    .social-icons a {
+      color: #fff;
+      font-size: 1.5em;
+      margin: 0 10px;
+      text-decoration: none;
+      transition: color 0.3s ease;
+    }
+
+    .social-icons a:hover {
+      color: #ffeb3b;
+    }
+  </style>
+</head>
+<body>
+  <header class="top-bar">
+    <h1>🎬 Movie Magic</h1>
+    <nav id="main-nav">
+      </nav>
+  </header>
+
+  <main>
+    <div class="search-location-bar">
+      <div class="search-box">
+        <input type="text" id="movie-search-input" placeholder="Search for movies..." />
+        <button id="search-button" class="btn search-btn">Search</button>
+      </div>
+      <div class="location-box">
+        <button id="detect-location-btn" class="btn location-btn">Detect Location</button>
+        <select id="choose-location-select" class="location-select">
+          <option value="">Choose Location</option>
+          <option value="Mumbai">Mumbai</option>
+          <option value="Delhi">Delhi</option>
+          <option value="Bengaluru">Bengaluru</option>
+          <option value="Chennai">Chennai</option>
+        </select>
+      </div>
+    </div>
+
+    <section class="carousel-section">
+      <h3>Now Playing Trailers</h3>
+      <div class="movie-carousel-container">
+        <div class="movie-carousel" id="movie-carousel">
+          <div class="carousel-item">
+             <a href="https://www.youtube.com/watch?v=g3JUbgOHgdw" target="_blank">
+             <img src="https://img.ap7am.com/froala-uploads/20241017fr6710ac0068685.jpg" alt="Pushpa 2 Trailer">
+             <div class="play-overlay">▶</div>
+             </a>
+          </div>
+          <div class="carousel-item">
+            <a href="https://www.youtube.com/watch?v=bWXm1FD9KxE" target="_blank">
+              <img src="https://images.static-bluray.com/products/20/144639_4_large.jpg" alt="Kalki 2898 AD Trailer">
+              <div class="play-overlay">▶</div>
+            </a>
+          </div>
+          <div class="carousel-item">
+            <a href="https://www.youtube.com/watch?v=9ZP6lHjv4JY" target="_blank">
+              <img src="https://m.media-amazon.com/images/M/MV5BZWEwNmYwYTAtMmQxYS00ZTgwLWE0NmUtNGIwZDEyZmYwN2EwXkEyXkFqcGc%40._V1_.jpg" alt="Devara Trailer">
+              <div class="play-overlay">▶</div>
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="new-trailers-section">
+      <div class="app-logo-overlay"></div>
+      <h3>UPCOMING MOVIE TRAILERS</h3>
+      <p>Discover the most anticipated films hitting the big screen soon!</p>
+      <div id="new-trailer-list" class="new-trailers-grid">
+        </div>
+    </section>
+    <section class="movies-section">
+      <h3>Movies Playing in <span id="current-location-display">All Locations</span></h3>
+      <div id="movie-list" class="movie-grid">
+        <p class="no-movies-msg">Select a location or search for movies to see results.</p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-content">
+      <div class="footer-section about">
+        <h4>About Movie Magic</h4>
+        <p>Your ultimate destination for movie trailers, showtimes, and an immersive cinematic experience. We bring the magic of movies directly to you!</p>
+      </div>
+      <div class="footer-section contact">
+        <h4>Contact Us</h4>
+        <p>Email: info@moviemagic.com</p>
+        <p>Phone: +91 98765 43210</p>
+        <p>Address: 123 Movie Lane, Film City, Hyderabad, India</p>
+      </div>
+      <div class="footer-section links">
+        <h4>Quick Links</h4>
+        <ul>
+          <li><a href="#">Privacy Policy</a></li>
+          <li><a href="#">Terms of Service</a></li>
+          <li><a href="#">FAQ</a></li>
+          <li><a href="#">Careers</a></li>
+          <li><a href="#">Site Map</a></li>
+        </ul>
+      </div>
+      <div class="footer-section social">
+        <h4>Follow Us</h4>
+        <div class="social-icons">
+          <a href="#" target="_blank">Facebook</a><br>
+          <a href="#" target="_blank">Twitter</a><br>
+          <a href="#" target="_blank">Instagram</a><br>
+          <a href="#" target="_blank">YouTube</a>
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>&copy; <span id="current-year"></span> Movie Magic. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <script>
+    // --- Sample Data (In a real app, this would come from your Python Backend) ---
+    // This data structure now includes a dummy trailerId for linking to YouTube
+    const allMovies = [
+      {
+        id: 'ee',
+        title: 'Eternal Echoes',
+        genre: 'Sci-Fi, Drama',
+        rating: '8.5/10',
+        poster: 'https://voxcapetown.com/wp-content/uploads/2023/06/eternal-echoes.jpg',
+        trailerId: 'CLDMJ7Q-mDI', // Dummy YouTube video ID
+        description: 'A captivating sci-fi drama that explores the intricate threads of time, memory, and parallel universes. A group of scientists discovers a phenomenon that allows them to glimpse into past lives, leading to profound revelations and dangerous paradoxes.',
+        locations: ['Mumbai', 'Delhi'],
+        showtimes: { // This structure is important for booking_form.html
+            'Mumbai': {'10:00 AM': 'Galaxy', '02:30 PM': 'PVR Icon', '07:00 PM': 'Cinepolis'},
+            'Delhi': {'10:00 AM': 'Wave', '02:30 PM': 'PVR Plaza', '07:00 PM': 'Carnival'}
+        }
+      },
+      {
+        id: 'baahu',
+        title: 'Baahubali',
+        genre: 'thriller, Action',
+        rating: '9.9/10',
+        poster: 'https://mir-s3-cdn-cf.behance.net/project_modules/1400/51054826796257.5635a9602a829.jpg',
+        trailerId: '3NQRhE772b0',
+        description: 'Baahubali is a visually stunning Indian epic that follows the tale of two royal brothers battling for the throne of Mahishmati.It blends mythology, heroism, betrayal, and destiny in a grand cinematic saga.Directed by S.S. Rajamouli, the film redefined Indian cinema with its scale, storytelling, and visual effects.',
+        locations: ['Bengaluru', 'Mumbai','Chennai','Delhi'],
+        showtimes: {
+            'Bengaluru': {'11:30 AM': 'Orion', '04:00 PM': 'Innovative'},
+            'Mumbai': {'08:45 PM': 'INOX'},
+            'Chennai':{'08:45 PM':'Innovative'},
+            'Delhi':{'02:00':'INOX'}
+        }
+      },
+      {
+        id: 'saaho',
+        title: 'Saaho',
+        genre: 'Thriller, saspence',
+        rating: '9.1/10',
+        poster: 'https://m.media-amazon.com/images/M/MV5BYmNlM2NkNzEtODAwOS00MTFjLTljODAtNjJjODdhZjI5MGYzXkEyXkFqcGc%40._V1_FMjpg_UX1000_.jpg',
+        trailerId: 'HNnt00swZ5Q',
+        description: 'Saaho (2019) is a high-octane Indian action thriller directed by Sujeeth, starring Prabhas (in his Hindi debut) and Shraddha Kapoor (in her Telugu debut) as undercover agents racing to recover a high-stakes black box amid a dangerous crime syndicate',
+        locations: ['Chennai', 'Delhi'],
+        showtimes: {
+            'Chennai': {'01:00 PM': 'AGS', '06:00 PM': 'Jazz'},
+            'Delhi': {'10:00 PM': 'Liberty'}
+        }
+      },
+      {
+        id: 'salaar',
+        title: 'Salaar',
+        genre: 'Friendship, Action',
+        rating: '9.0/10',
+        poster: 'https://m.media-amazon.com/images/M/MV5BNTU0ZjYxOWItOWViMC00YWVlLWJlMGUtZjc1YWU0NTlhY2ZhXkEyXkFqcGc%40._V1_.jpg',
+        trailerId: '7JBFA4qSX_o',
+        description: 'Salaar: Part 1 – Ceasefire is a Telugu-language epic neo‑noir action thriller directed by Prashanth Neel, in which Prabhas stars as Deva, a stoic exiled prince drawn back into the fire of a planned coup in the dystopian city-state of Khansaar',
+        locations: ['Mumbai', 'Chennai'],
+        showtimes: {
+            'Mumbai': {'09:45 AM': 'Metro', '03:15 PM': 'Regal'},
+            'Chennai': {'09:00 PM': 'Sathyam'}
+        }
+      },
+      {
+        id: 'Puspa',
+        title: 'Puspa-2',
+        genre: 'Action, Don',
+        rating: '8.5/10',
+        poster: 'https://img.ap7am.com/froala-uploads/20241017fr6710ac0068685.jpg',
+        trailerId: 'g3JUbgOHgdw',
+        description: 'Pushpa 2: The Rule (released Dec 5, 2024) continues the saga of Pushpa Raj, a once-humble sandalwood smuggler turned syndicate kingpin, as he battles political corruption and powerful foes to consolidate his empire',
+        locations: ['Delhi', 'Bengaluru'],
+        showtimes: {
+            'Delhi': {'10:30 AM': 'DT Cinema', '01:30 PM': 'Pacific'},
+            'Bengaluru': {'05:00 PM': 'Gopalan', '08:30 PM': 'Rex'}
+        }
+      }
+    ];
+
+    // Dummy data for new trailers (you would add new movie objects here)
+    const newTrailers = [
+      {
+        id: 'gamechanger',
+        title: 'Gamechanger',
+        poster: 'https://media-cache.cinematerial.com/p/500x/563b2c5o/game-changer-indian-movie-poster.jpg?v=1736689744.jpg',
+        trailerId: 'L395pQBbIiY', // Example YouTube ID
+      },
+      {
+        id: 'eleven',
+        title: 'Eleven',
+        poster: 'https://www.cinejosh.com/reviewsimg/big/eleven-review_b_1605251212.jpg',
+        trailerId: 'm-9Rj_NIztc', // Example YouTube ID
+      },
+      {
+        id: 'jawan',
+        title: 'Jawan',
+        poster: 'https://filmfare.wwmindia.com/content/2023/aug/jawan21691407612.jpg',
+        trailerId: 'MWOlnZSnXJo', // Example YouTube ID
+      },
+      {
+        id: 'leo',
+        title: 'Leo',
+        poster: 'https://m.media-amazon.com/images/M/MV5BZTgzNjBhY2MtZTkxOS00ZTdlLWIyMzUtNTFkYWEzNjBjZmU1XkEyXkFqcGc%40._V1_.jpg',
+        trailerId: 'Po3jStA673E', // Example YouTube ID
+      },
+      {
+        id: 'gunturkaaram',
+        title: 'Guntur Kaaram',
+        poster: 'https://m.media-amazon.com/images/M/MV5BNGEyNDQ0MmItNWZlZS00M2ZiLWI3NzktMzlhZjRiYmY5NGMzXkEyXkFqcGc%40._V1_.jpg',
+        trailerId: 'DYLG65xz55U', // Example YouTube ID
+      }
+      // Add more new movie trailers here
+    ];
+
+    let currentUserLoggedIn = localStorage.getItem('isLoggedIn') === 'true'; // Simulate login state
+    let selectedLocation = ''; // Current selected location
+
+    const mainNav = document.getElementById('main-nav');
+    const movieSearchInput = document.getElementById('movie-search-input');
+    const searchButton = document.getElementById('search-button');
+    const detectLocationBtn = document.getElementById('detect-location-btn');
+    const chooseLocationSelect = document.getElementById('choose-location-select');
+    const movieListContainer = document.getElementById('movie-list');
+    const currentLocationDisplay = document.getElementById('current-location-display');
+    const movieCarousel = document.getElementById('movie-carousel');
+    const newTrailerListContainer = document.getElementById('new-trailer-list'); // Get the new container
+
+
+    // --- Navigation Bar Logic ---
+    function updateNavBar() {
+      mainNav.innerHTML = ''; // Clear existing nav
+      if (currentUserLoggedIn) {
+        // Logged In State
+        const myAccountDiv = document.createElement('div');
+        myAccountDiv.classList.add('dropdown');
+        myAccountDiv.innerHTML = `
+          <a href="#" class="dropbtn">My Account ▼</a>
+          <div class="dropdown-content">
+            <a href="#">Profile</a>
+            <a href="#">Account Settings</a>
+            <a href="tickets.html">My Tickets</a>
+            <a href="#" id="logout-link">Logout</a>
+          </div>
+        `;
+        mainNav.appendChild(myAccountDiv);
+
+        document.getElementById('logout-link').addEventListener('click', (e) => {
+          e.preventDefault();
+          localStorage.setItem('isLoggedIn', 'false'); // Simulate logout
+          currentUserLoggedIn = false;
+          updateNavBar(); // Update nav bar
+          alert('You have been logged out.'); // For demonstration
+        });
+      } else {
+        // Logged Out State
+        mainNav.innerHTML = `
+          <a href="{{url_for('home')}}">Home</a>
+          <a href="{{url_for('login')}}">Login</a>
+          <a href="{{url_for('register')}}">Register</a>
+        `;
+      }
+    }
+
+    // --- Movie Display & Filtering Logic ---
+    function displayMovies(moviesToDisplay) {
+      movieListContainer.innerHTML = ''; // Clear current movies
+
+      if (moviesToDisplay.length === 0) {
+        movieListContainer.innerHTML = "<p class='no-movies-msg'>No movies found for this selection.</p>";
+        return;
+      }
+
+      moviesToDisplay.forEach(movie => {
+        const movieCard = document.createElement('div');
+        movieCard.classList.add('movie-card');
+        movieCard.innerHTML = `
+          <img src="${movie.poster}" alt="${movie.title} Poster" class="movie-poster">
+          <div class="movie-details">
+            <h4 class="movie-title">${movie.title}</h4>
+            <p class="movie-genre">${movie.genre}</p>
+            <div class="movie-rating">
+              <span>⭐ ${movie.rating}</span>
+            </div>
+            <a href="booking_form.html?movieId=${movie.id}&location=${encodeURIComponent(selectedLocation)}" class="book-btn">View Details & Book</a>
+          </div>
+        `;
+        movieListContainer.appendChild(movieCard);
+      });
+    }
+
+    function filterAndDisplayMovies() {
+      const searchTerm = movieSearchInput.value.toLowerCase();
+      const currentLoc = selectedLocation;
+
+      const filteredMovies = allMovies.filter(movie => {
+        const matchesSearch = movie.title.toLowerCase().includes(searchTerm);
+        const matchesLocation = currentLoc === '' || movie.locations.includes(currentLoc);
+        return matchesSearch && matchesLocation;
+      });
+
+      currentLocationDisplay.textContent = currentLoc || 'All Locations';
+      displayMovies(filteredMovies);
+    }
+
+    // --- New Trailers Display Logic ---
+    function displayNewTrailers() {
+      newTrailerListContainer.innerHTML = ''; // Clear existing
+      newTrailers.forEach(trailer => {
+        const trailerItem = document.createElement('div');
+        trailerItem.classList.add('new-trailer-item');
+        trailerItem.innerHTML = `
+          <a href="https://www.youtube.com/watch?v=$${trailer.trailerId}" target="_blank">
+            <img src="${trailer.poster}" alt="${trailer.title} Trailer">
+            <div class="new-trailer-play-overlay">▶</div>
+          </a>
+        `;
+        newTrailerListContainer.appendChild(trailerItem);
+      });
+    }
+
+
+    // --- Event Listeners ---
+    searchButton.addEventListener('click', filterAndDisplayMovies);
+    movieSearchInput.addEventListener('keyup', (event) => {
+      if (event.key === 'Enter') {
+        filterAndDisplayMovies();
+      }
+    });
+
+    chooseLocationSelect.addEventListener('change', (e) => {
+      selectedLocation = e.target.value;
+      filterAndDisplayMovies();
+    });
+
+    detectLocationBtn.addEventListener('click', () => {
+      // Simulate location detection for front-end demo
+      // In a real app, you'd use navigator.geolocation.getCurrentPosition
+      alert('Location detection triggered! (Simulated to Mumbai)');
+      selectedLocation = 'Mumbai'; // Example detected location
+      chooseLocationSelect.value = 'Mumbai'; // Update select dropdown
+      filterAndDisplayMovies();
+    });
+
+    // --- Carousel Logic (Infinite Loop) ---
+    // Duplicate carousel items for seamless looping
+    const carouselItems = Array.from(movieCarousel.children);
+    carouselItems.forEach(item => {
+        const clone = item.cloneNode(true);
+        movieCarousel.appendChild(clone);
+    });
+
+    let carouselScrollAmount = 0;
+    const scrollSpeed = 1; // Pixels per frame, adjusted for smoothness
+    const scrollInterval = 15; // Milliseconds per frame
+
+    function startCarouselScroll() {
+      setInterval(() => {
+        carouselScrollAmount += scrollSpeed;
+        // When the scroll position passes the original set of items, reset to the start of the duplicated set
+        if (carouselScrollAmount >= movieCarousel.scrollWidth / 2) {
+          carouselScrollAmount = 0;
+        }
+        movieCarousel.scrollLeft = carouselScrollAmount;
+      }, scrollInterval);
+    }
+
+    // --- Initial Load ---
+    document.addEventListener('DOMContentLoaded', () => {
+      updateNavBar();
+      filterAndDisplayMovies(); // Display all movies initially
+      startCarouselScroll(); // Start the carousel animation
+      displayNewTrailers(); // Display the new trailers
+
+      // Set the current year in the footer
+      document.getElementById('current-year').textContent = new Date().getFullYear();
+    });
+
+  </script>
+</body>
+</html>
